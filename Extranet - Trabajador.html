@@ -1,0 +1,780 @@
+
+<!-- saved from url=(0069)https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Extranet - Comfamiliar Atlántico</title>
+		<link rel="stylesheet" href="./Extranet - Trabajador_files/main.css">
+		<link rel="stylesheet" href="./Extranet - Trabajador_files/advertisement.css">
+		<link rel="shortcut icon" href="https://extranet.comfamiliar.com.co/extranet/static/images/comfa_icon.ico" type="image/x-icon">
+		
+		
+		
+		<meta name="layout" content="main">
+		
+		
+		<link rel="stylesheet" href="./Extranet - Trabajador_files/jquery-ui.css">
+		<script type="text/javascript" src="./Extranet - Trabajador_files/jquery.min.js"></script>
+		<script type="text/javascript" src="./Extranet - Trabajador_files/jquery-ui.min.js"></script>
+		<script type="text/javascript" src="./Extranet - Trabajador_files/fechaNacimientoTra.js"></script>
+		<script type="text/javascript" src="./Extranet - Trabajador_files/fechaIngreso.js"></script>	
+		<script type="text/javascript" src="./Extranet - Trabajador_files/utils.js"></script>
+		
+		<script type="text/javascript">
+			function actualizar_barrios(ciudad,seleccion){
+				$.ajax({
+					type: "POST",
+					url: '/extranet/informacionGeneral/barrios_AJAX?id='+ciudad+'&sel='+seleccion,
+					dataType: "HTML",
+					success: function(resp){
+						document.getElementById( 'div_barrios' ).innerHTML = resp;
+					}
+				});
+			}
+			
+			function buscarEmpleado(){
+				var empleado = $("#trrdoc").val();
+				if(empleado.length>11){
+					empleado = empleado.substring(0, 11);
+				}
+
+				document.getElementById("spinnerTrabaj").style.display=""
+				$('#form').hide();
+				$('#alertAfiliado #p1').hide();
+				$('#alertAfiliado #p2').hide();
+				$('#alertAfiliado #p3').hide();
+
+				$.ajax({
+					type: "POST",
+					url: '/extranet/afiliacion/buscarEmpleado/'+empleado,
+					dataType: "text",
+					success: function(resp){
+						$xml = $($.parseXML(resp));
+
+						if($xml.find("empresa").text()=="1"){
+							$('#alertAfiliado #p2').show();
+							$("#alertAfiliado").dialog('open');
+						}else{
+							$('#traap1').val($xml.find("apellido1").text());
+							$('#traap2').val($xml.find("apellido2").text());
+							$('#trano1').val($xml.find("nombre1").text());
+							$('#trano2').val($xml.find("nombre2").text());
+							$("#fnc").datepicker("setDate",$xml.find("fechaNacimiento").text());
+							$($xml.find("sexo").text()).attr("checked",true);
+							$('#traecv').get(0).selectedIndex = parseInt($xml.find("estadoCivil").text())-1;
+							var ciudad = parseInt($xml.find("ciudad").text());
+							$('#ciutra').get(0).selectedIndex = $("#ciutra option[value='"+ciudad+"']").index();
+							actualizar_barrios(ciudad,parseInt($xml.find("barrio").text()));
+							$('#tradir').val($xml.find("direccion").text());
+							$('#tratlr').val($xml.find("telefono").text());
+							$('#tracel').val($xml.find("celular").text());
+							$('#tramai').val($xml.find("correo").text());
+							$('#traned').get(0).selectedIndex = parseInt($xml.find("nivelEducativo").text());
+							$('#form').show('slow');
+							
+							if($xml.find("afiliado").text()=="1"){
+								$('#alertAfiliado #p1').show();
+								$("#alertAfiliado").dialog('open');
+							}
+						}
+
+						document.getElementById("spinnerTrabaj").style.display="none";
+					},
+					error: function(resp){
+						$xml = $($.parseXML(resp));
+
+						$('#traap1').val("");
+						$('#traap2').val("");
+						$('#trano1').val("");
+						$('#trano2').val("");
+						$("#fnc").datepicker("setDate","");
+						$('#trasex1').attr("checked",false);
+						$('#trasex2').attr("checked",false);
+						$('#traecv').get(0).selectedIndex = 0;
+						$('#ciutra').get(0).selectedIndex = 0;
+						actualizar_barrios($("#ciutra option:selected").val(),-1);
+						$('#tradir').val("");
+						$('#tratlr').val("");
+						$('#tracel').val("");
+						$('#tramai').val("");
+						$('#traned').get(0).selectedIndex = 0;
+
+						document.getElementById("spinnerTrabaj").style.display="none";
+
+						if($xml.find("independiente").text()=="1"){
+							$('#alertAfiliado #p3').show();
+							$("#alertAfiliado").dialog('open');
+						}else{
+							$('#form').show('slow');
+						}
+					}
+				});
+			}
+			
+			function changeTipoDoc(tdc){
+				if(tdc == 7){
+					$("#trrdoc").val("").attr("maxlength", "15");
+				}else{
+					$("#trrdoc").val("").attr("maxlength", "10");
+				}
+			}
+
+			function validForm(evt){
+				$("#errores ul li").remove();
+				$("#errores").hide();
+				
+				var ap1 = $("#traap1").val();
+				if(ap1 == null || ap1.trim() == "" || !validarNombre(ap1)){
+					$("#errores ul").append('<li>El Primer Apellido ingresado no es válido</li>');
+				}
+
+				var ap2 = $("#traap2").val();
+				if(ap2 == null || (ap2.trim() != "" && !validarNombre(ap2))){
+					$("#errores ul").append('<li>El Segundo Apellido ingresado no es válido</li>');
+				}
+
+				var no1 = $("#trano1").val();
+				if(no1 == null || no1.trim() == "" || !validarNombre(no1)){
+					$("#errores ul").append('<li>El Primer Nombre ingresado no es válido</li>');
+				}
+
+				var no2 = $("#trano2").val();
+				if(no2 == null || (no2.trim() != "" && !validarNombre(no2))){
+					$("#errores ul").append('<li>El Segundo Nombre ingresado no es válido</li>');
+				}
+
+				var car = $("#tracar").val();
+				if(car == null){
+					$("#errores ul").append('<li>El Cargo ingresado no es válido</li>');
+				}
+
+				var fnc = $("#fnc").val();
+				if(fnc == null || fnc.trim() == ""){
+					$("#errores ul").append('<li>La Fecha de Nacimiento ingresada no es válida</li>');
+				}
+
+				var sex = $("input[name='trasex']:checked").val();
+				if(sex == null){
+					$("#errores ul").append('<li>El Sexo ingresado no es válido</li>');
+				}
+
+				var ecv = $("#traecv").val();
+				if(ecv == null){
+					$("#errores ul").append('<li>El Estado Civil ingresado no es válido</li>');
+				}
+
+				var fie = $("#fie").val();
+				if(fie == null || fie.trim() == ""){
+					$("#errores ul").append('<li>La Fecha de Ingreso ingresada no es válida</li>');
+				}
+
+				var ciu = $("#ciutra").val();
+				if(ciu == null){
+					$("#errores ul").append('<li>La Ciudad ingresada no es válida</li>');
+				}
+
+				var bar = $("#bartra").val();
+				if(bar == null){
+					$("#errores ul").append('<li>El Barrio ingresado no es válido</li>');
+				}
+
+				var dir = $("#tradir").val();
+				if(dir == null || dir.trim() == "" || !validarDireccion(dir)){
+					$("#errores ul").append('<li>La Dirección de Domicilio ingresada no es válida</li>');
+				}
+
+				var tlr = $("#tratlr").val();
+				if(tlr == null || (tlr.trim() != "" && !validarTelefono(tlr))){
+					$("#errores ul").append('<li>El Teléfono ingresado no es válido</li>');
+				}
+
+				var cel = $("#tracel").val();
+				if(cel == null || cel.trim() == "" || !validarCelular(cel)){
+					$("#errores ul").append('<li>El Celular ingresado no es válido</li>');
+				}
+
+				var mai = $("#tramai").val();
+				if(mai == null || (mai.trim() != "" && !validarCorreoElectronico(mai))){
+					$("#errores ul").append('<li>El Correo Electrónico ingresado no es válido</li>');
+				}
+
+				var ned = $("#traned").val();
+				if(ned == null){
+					$("#errores ul").append('<li>El Nivel Educativo ingresado no es válido</li>');
+				}
+
+				var cco = $("#tracco").val();
+				if(cco == null || (cco.trim() != "" && !validarEntero(cco))){
+					$("#errores ul").append('<li>El Centro de Costo ingresado no es válido</li>');
+				}
+
+				var htm = $("#trahtm").val();
+				if(htm == null || htm.trim() == "" || !validarEntero(htm)){
+					$("#errores ul").append('<li>Las Horas Trabajadas al mes ingresadas no son válidas</li>');
+				}
+
+				var vsb = $("#travsb").val();
+				if(vsb == null || vsb.trim() == "" || !validarEntero(vsb)){
+					$("#errores ul").append('<li>El Salario Básibo ingresado no es válido</li>');
+				}
+
+				var docCed = $("#anexos").val();
+				if(docCed == null || docCed.trim() == ""){
+					$("#errores ul").append('<li>El documento anexo Cedula de Ciudadania es obligatorio</li>');
+				}else if(!validarExtension(docCed)){
+					$("#errores ul").append('<li>El documento anexo Cedula de Ciudadania no tiene una extensión válida</li>');
+				}
+
+				if($("#errores ul li").size() > 0){
+					$("#errores").show();
+					document.body.scrollTop = 0;
+  					document.documentElement.scrollTop = 0;
+					evt.preventDefault();
+					return;
+				}
+
+				if(!confirm('¿Esta seguro de grabar el nuevo empleado?')){
+					evt.preventDefault();
+				}
+			}
+
+			function PreviewImage(inputId, previewId) {
+				var pdffile=$("#"+inputId)[0].files[0];
+				var pdffile_url=URL.createObjectURL(pdffile);
+				$("#"+previewId).attr('src',pdffile_url);
+			}
+			
+			$(function(){
+				$("#alertAfiliado").dialog({
+					resizable: true,
+					autoOpen: false,
+					height: 120,
+					width: 300,
+					modal: true
+				});
+				$("#trrdoc").change(function(){
+					buscarEmpleado();
+				});
+				$("#saveEmpleado").submit(function(evt){
+					validForm(evt);
+				});
+				$("input[type='file'][preview]").change(function() {
+					var inputId = $(this).attr('id');
+					var previewId = $(this).attr('preview');
+					PreviewImage(inputId, previewId);
+					$("tr.hiddenElement."+previewId).removeClass("hiddenElement");
+				});
+				$("iframe").on("load", function(){
+					var inputHeight = this.contentWindow.document.body.scrollHeight;
+					var iframeHeight = 300;
+					if(inputHeight > 0){
+						iframeHeight = inputHeight;
+					}
+					$(this).height(iframeHeight);
+				});
+				
+					$("#errores").hide();
+				
+			});
+		</script>
+	
+	</head>
+	<body>
+		<table>
+			<tbody><tr>
+				<td class="layoutSeccionOpciones">
+				
+				<div id="leftcol"><img src="./Extranet - Trabajador_files/logo-comfas.png" width="270" height="115" alt="Comfamiliar Atlántico">
+					<ul>
+			
+						<li>EMPRESAS</li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/informacionGeneral/consulta">Datos Básicos</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/informacionGeneral/contactoEmpresa">Datos de Contacto</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/afiliacion/trabajadoresCreados">Registro de Trabajadores</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/afiliacion/afiliacionTrabajadores">Consulta de Trabajadores</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/consulta/consultaAporte">Aportes</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/solicitudes/solicitudVisitas">Solicitud de Visita</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/solicitudes/listadoSolVisita">Consulta de Visitas</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/documentos/listadoNominaEnviadas">Envío  Relación de Nómina</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/consulta/consultaSubsidio">Compromisos por Subsidio</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/consulta/consultaCredito">Consulta de Créditos</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/capacitacionesEmpresariales/capacitacionEmpresarial">Capacitaciones decreto 689</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/fomentoEmpresarial/solicitudes">Fomento Empresarial</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/forms/pqrs" target="_blank">Peticiones Quejas y Reclamos</a></li>
+						<li> <a href="https://extranet.comfamiliar.com.co/extranet/informacionGeneral/mostrarUsuarioEmpresa">Cambio de Clave</a></li>
+				
+					</ul>
+				</div>
+			
+				</td>
+				<td rowspan="0">
+		<div id="rightcol">
+			<table style="border: none">
+	<tbody><tr>
+		<td> <a href="https://extranet.comfamiliar.com.co/extranet/logout" class="salida">Salida Segura</a>
+                    <kbd class="antetitulo">Bienvenido,</kbd>
+                    <h1 class="subtitulo">COMFAMILIAR ATLANTICO                                                 </h1>
+                   <div class="subtitulo3">COMFAMILIAR</div></td>
+		<td style="width: 40px">
+		
+		</td>
+	</tr>
+</tbody></table>
+
+
+
+
+			<div class="nav">
+				<span class="menuButton"><a class="home" href="https://extranet.comfamiliar.com.co/extranet/">Inicio</a></span>
+				<span class="menuButton"><a class="back" href="javascript:window.history.back()">Volver</a></span>
+			</div>
+			<div class="body">
+				<h1></h1>
+				
+				<div id="errores" style="display: none;">
+					<ul>
+						
+					</ul>
+				</div>
+				<form action="https://extranet.comfamiliar.com.co/extranet/afiliacion/index" method="post" name="saveEmpleado" autocomplete="nope" enctype="multipart/form-data" id="saveEmpleado">
+				<div class="dialog">
+					<div class="subtitulo3">Los datos marcados con  <img src="./Extranet - Trabajador_files/ico-oblig.png" width="30" height="10" alt="*">son obligatorios.</div><br><table>
+						
+						
+						<thead>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="tratdc">Tipo de Documento</label>
+								</td>
+								<td valign="top" class="value ">
+									<select id="tratdc" name="tratdc" onchange="javascript:changeTipoDoc(this.value);">
+<option value="-1">CD                                                </option>
+<option value="1">CC                                                </option>
+<option value="3">CE                                                </option>
+<option value="4">TI                                                </option>
+<option value="6">PA                                                </option>
+<option value="9">PPT                                               </option>
+</select>
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="trrdoc">Documento Trabajador</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" class="captura4" name="trrdoc" maxlength="10" value="" autocomplete="nope" id="trrdoc">
+									<span class="acceptNav">
+										<span class="acceptButton" id="search" onclick="buscarEmpleado()">Continuar</span>
+									</span>
+									<img id="spinnerTrabaj" style="display: none;" src="./Extranet - Trabajador_files/spinner.gif" alt="Espere...">
+								</td>
+							</tr>
+						</thead>
+						<tbody id="form" style="">
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="traap1">Primer apellido</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" class="captura4" name="traap1" id="traap1" maxlength="20" value="" autocomplete="nope">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="traap2">Segundo apellido</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" name="traap2" maxlength="20" value="" autocomplete="nope" id="traap2">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="trano1">Primer nombre</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" class="captura4" name="trano1" maxlength="20" value="" autocomplete="nope" id="trano1">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="trano2">Segundo nombre</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" name="trano2" maxlength="20" value="" autocomplete="nope" id="trano2">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="tracar">Cargo empresa</label>
+								</td>
+								<td valign="top" class="value ">
+									<select name="tracar" id="tracar">
+<option value="0">Ninguno                                           </option>
+<option value="1">Mensajero                                         </option>
+<option value="2">Representante legal                               </option>
+<option value="3">Jefe de nomina                                    </option>
+<option value="4">Jefe de personal                                  </option>
+<option value="5">Personal de planta                                </option>
+<option value="10">Otro                                              </option>
+<option value="11">Trabajador de tiempo parcial                      </option>
+</select>
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="trafnc">Fecha de Nacimiento</label>
+								</td>
+								<td valign="top" class="value ">
+									<input id="fnc" type="text" readonly="readonly" class="captura4 hasDatepicker"><img class="ui-datepicker-trigger" src="./Extranet - Trabajador_files/calendar.png" alt="Seleccionar fecha de nacimiento" title="Seleccionar fecha de nacimiento">
+									Seleccionar
+									
+									<input name="trafnc" id="trafnc" type="text" style="display:none" value="">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label>Sexo</label>
+								</td>
+								
+								 
+								<td valign="top" class="value ">
+									<label for="trasex1">Masculino</label> <input type="radio" name="trasex" id="trasex1" value="1">
+									<label for="trasex2">Femenino</label> <input type="radio" name="trasex" id="trasex2" value="2">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="traecv">Estado Civil</label>
+								</td>
+								<td valign="top" class="value ">
+									<select id="traecv" name="traecv">
+<option value="1">Soltero</option>
+<option value="2">Casado</option>
+<option value="3">Unión Libre</option>
+<option value="4">Separado</option>
+<option value="5">Viudo</option>
+</select>
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="trafie">Fecha de Ingreso</label>
+								</td>
+								<td valign="top" class="value ">
+									<input id="fie" type="text" readonly="readonly" class="captura4 hasDatepicker"><img class="ui-datepicker-trigger" src="./Extranet - Trabajador_files/calendar.png" alt="Seleccionar fecha de ingreso" title="Seleccionar fecha de ingreso">
+									Seleccionar
+									
+									<input name="trafie" id="trafie" type="text" style="display:none" value="">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="ciutra">Ciudad del Trabajador</label>
+								</td>
+								<td valign="top" class="value ">
+									<select id="ciutra" name="ciutra" onchange="actualizar_barrios( this.value ,-1)" style="width:180px">
+<option value="169">ACHÍ           </option>
+<option value="101">AGUACHICA-CESAR</option>
+<option value="63">AGUADA DE PABLO</option>
+<option value="167">APARTADÓ-ANTQ  </option>
+<option value="107">ARACATACA      </option>
+<option value="80">ARJONA-BOLIVAR </option>
+<option value="50">ARMENIA        </option>
+<option value="97">ARROYO DE PIEDR</option>
+<option value="146">ASTREA         </option>
+<option value="8">BARANOA        </option>
+<option value="77">BARRANCAS-B/MGA</option>
+<option value="1">BARRANQUILLA   </option>
+<option value="154">BECERRIL       </option>
+<option value="27">BOGOTA         </option>
+<option value="100">BOSCONIA       </option>
+<option value="30">BUCARAMANGA    </option>
+<option value="121">BUCARAMANGA    </option>
+<option value="99">BUENAVENTURA   </option>
+<option value="160">BUESACO        </option>
+<option value="64">CALAMAR        </option>
+<option value="51">CALI           </option>
+<option value="143">CALOTO-CAUCA   </option>
+<option value="36">CAMPECHE       </option>
+<option value="12">CAMPO DE L CRUZ</option>
+<option value="13">CANDELARIA     </option>
+<option value="61">CARACOLI       </option>
+<option value="81">CARMEN-BOLIVAR </option>
+<option value="35">CARTAGENA      </option>
+<option value="119">CAUCASIA-ANTIOQ</option>
+<option value="46">CERETE         </option>
+<option value="113">CERRO SAN ANTON</option>
+<option value="138">CHIA-C/MARCA   </option>
+<option value="147">CHINCHINA-CALDA</option>
+<option value="54">CHINU          </option>
+<option value="104">CHIRIGUANA     </option>
+<option value="49">CIENAGA        </option>
+<option value="156">COLOSO         </option>
+<option value="115">COPEY-CESAR    </option>
+<option value="103">CORDOBA        </option>
+<option value="60">COROZAL        </option>
+<option value="126">COTA-C/MARCA   </option>
+<option value="136">COTA-C/MARCA   </option>
+<option value="93">COVEÑAS-TOLU   </option>
+<option value="75">CUATRO VIENTOS </option>
+<option value="28">CUCUTA         </option>
+<option value="44">CUNDINAMARCA   </option>
+<option value="95">DOS QUEBRADAS  </option>
+<option value="151">DUITAMA        </option>
+<option value="166">EL PASO CESAR  </option>
+<option value="155">EL ROBLE       </option>
+<option value="109">ENVIGADO       </option>
+<option value="141">ESPINAL-TOL    </option>
+<option value="145">FACATATIVA-C/MA</option>
+<option value="128">FLORENCIA-CAQUE</option>
+<option value="68">FLORIDA - VALLE</option>
+<option value="88">FLORIDA BLANCA </option>
+<option value="71">FUNDACIÓN      </option>
+<option value="106">FUNZA-C/MARCA  </option>
+<option value="112">FUSAGASUGA-CUND</option>
+<option value="58">GAIMARAL       </option>
+<option value="4">GALAPA         </option>
+<option value="144">GARELAZAMBA-BOL</option>
+<option value="152">GIRARDOTA      </option>
+<option value="41">GIRON          </option>
+<option value="25">GUAJIRA        </option>
+<option value="110">GUAMO-BOLIVAR  </option>
+<option value="74">IBAGUE         </option>
+<option value="38">ISABEL LOPEZ   </option>
+<option value="105">ITAGUI         </option>
+<option value="168">JAGUA-IBIRICO  </option>
+<option value="122">JAMUNDI        </option>
+<option value="14">JUAN DE ACOSTA </option>
+<option value="78">JUAN MINA      </option>
+<option value="123">LA ESTRELLA-ANT</option>
+<option value="11">LA PLAYA       </option>
+<option value="159">LA TEBAIDA     </option>
+<option value="79">LORICA-CORDOBA </option>
+<option value="15">LURUACO        </option>
+<option value="39">MAGANGUE-BOLIVA</option>
+<option value="40">MAGDALENA      </option>
+<option value="76">MAICAO         </option>
+<option value="7">MALAMBO        </option>
+<option value="16">MANATI         </option>
+<option value="90">MANAURE        </option>
+<option value="72">MANIZALES      </option>
+<option value="127">MARIQUITA-TOLIM</option>
+<option value="26">MEDELLIN       </option>
+<option value="65">MOLINERO       </option>
+<option value="130">MOMPOS-BOLIVAR </option>
+<option value="69">MONTELIBANO    </option>
+<option value="34">MONTERIA       </option>
+<option value="142">MOSQUERA-C/MARC</option>
+<option value="85">NEIVA          </option>
+<option value="47">OCAÑA          </option>
+<option value="62">PALERMO        </option>
+<option value="10">PALMAR DE VAREL</option>
+<option value="56">PALMIRA        </option>
+<option value="133">PALOMINO-GUAJIR</option>
+<option value="92">PASTO          </option>
+<option value="153">PELAYA         </option>
+<option value="43">PEREIRA        </option>
+<option value="120">PIEDESCUESTA   </option>
+<option value="17">PIOJO          </option>
+<option value="84">PIVIJAY        </option>
+<option value="83">PLANETA RICA   </option>
+<option value="89">PLATO-MAGDALENA</option>
+<option value="18">POLONUEVO      </option>
+<option value="19">PONEDERA       </option>
+<option value="118">POPAYAN        </option>
+<option value="67">PTO BERRIO     </option>
+<option value="148">PTO BOYACA-BOY </option>
+<option value="2">PTO COLOMBIA   </option>
+<option value="86">PUERTO GIRALDO </option>
+<option value="129">QUIBDO-CHOCO   </option>
+<option value="149">QUIMBAYA       </option>
+<option value="57">REMOLINO       </option>
+<option value="20">REPELÓN        </option>
+<option value="53">RIO NEGRO      </option>
+<option value="70">RIOACHA        </option>
+<option value="5">SABANAGRANDE   </option>
+<option value="3">SABANALARGA    </option>
+<option value="140">SABANETA-ANTQ  </option>
+<option value="87">SAHAGUN-CORDOBA</option>
+<option value="32">SALGAR         </option>
+<option value="82">SAMPUES        </option>
+<option value="52">SAN ANDRES ISLA</option>
+<option value="135">SAN BERNARDO   </option>
+<option value="132">SAN CRISTOBAL-B</option>
+<option value="157">SAN DIEGO-CESAR</option>
+<option value="164">SAN GIL        </option>
+<option value="161">SAN JACINTO    </option>
+<option value="131">SAN JUAN GUAJIR</option>
+<option value="150">SAN MARCOS     </option>
+<option value="98">SAN PELAYO-CORD</option>
+<option value="114">SANTA CATALINA </option>
+<option value="21">SANTA LUCIA    </option>
+<option value="31">SANTA MARTA    </option>
+<option value="6">SANTO TOMAS    </option>
+<option value="163">SARAVENA-ARAUCA</option>
+<option value="137">SIBATE-C/MARCA </option>
+<option value="0">SIN CIUDAD     </option>
+<option value="96">SINCE          </option>
+<option value="37">SINCELEJO      </option>
+<option value="134">SINCELEJO      </option>
+<option value="91">SITIO NUEVO    </option>
+<option value="139">SOACHA-C/MARCA </option>
+<option value="45">SOGAMOZO       </option>
+<option value="24">SOLEDAD        </option>
+<option value="102">SOPLAVIENTO    </option>
+<option value="55">STA VERONICA   </option>
+<option value="22">SUAN           </option>
+<option value="165">TALAIGUA NUEVO </option>
+<option value="94">TAMALAMEQUE    </option>
+<option value="158">TAME           </option>
+<option value="73">TOLU           </option>
+<option value="23">TUBARA         </option>
+<option value="108">TULUA-VALLE    </option>
+<option value="66">TUNJA          </option>
+<option value="42">TURBACO        </option>
+<option value="116">UBAQUE         </option>
+<option value="117">URIBIA         </option>
+<option value="9">USIACURI       </option>
+<option value="33">VALLEDUPAR     </option>
+<option value="59">VILLAVICENCIO  </option>
+<option value="111">YOPAL          </option>
+<option value="124">YUMBO-VALLE    </option>
+</select>
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="bartra">Barrio</label>
+								</td>
+								<td valign="top" class="value ">
+									<div id="div_barrios"><select name="bartra" id="bartra" style="width:180px"></select></div>
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="tradir">Dirección Domicilio</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" class="captura4 notPaste" name="tradir" id="tradir" maxlength="30" value="" autocomplete="nope">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="tratlr">Telefono Residencia</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" class="captura4" maxlength="7" name="tratlr" id="tratlr" value="" autocomplete="nope">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="tracel">Número Celular de Contacto</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" class="captura4" name="tracel" id="tracel" maxlength="10" value="" autocomplete="nope">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="tramai">Correo electrónico</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" name="tramai" id="tramai" maxlength="50" value="" autocomplete="nope">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="traned">Nivel educativo</label>
+								</td>
+								<td valign="top" class="value ">
+									<select id="traned" name="traned">
+<option value="0">NINGUNO</option>
+<option value="1">PRIMARIA</option>
+<option value="2">SECUNDARIA</option>
+<option value="3">TECNICO</option>
+<option value="4">PROFESIONAL</option>
+<option value="5">OTROS</option>
+</select>        
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="tracco">Centro de Costo</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" name="tracco" maxlength="3" value="" autocomplete="nope" id="tracco">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="trahtm">Horas trabajadas mes</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" class="captura4" name="trahtm" maxlength="3" value="" autocomplete="nope" id="trahtm">
+								</td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="travsb">Salario Básico</label>
+								</td>
+								<td valign="top" class="value ">
+									<input type="text" class="captura4" name="travsb" maxlength="9" value="" autocomplete="nope" id="travsb">
+								</td>
+							</tr>
+							<tr>
+								<td></td>
+								<td><h1>Documentos anexos</h1></td>
+							</tr>
+							<tr class="prop">
+								<td valign="top" class="name">
+									<label for="anexos">Cedula de ciudadania</label>
+								</td>
+								<td valign="top" class="value ">
+									<input size="50" type="file" name="anexos" id="anexos" preview="preview1" accept="image/jpeg,image/jpg,image/png,.pdf">
+								</td>
+							</tr>
+							<tr class="hiddenElement preview1">
+								<td colspan="2">
+									<div style="clear:both">
+										<iframe id="preview1" frameborder="0" scrolling="no" width="100%" height="200" src="./Extranet - Trabajador_files/saved_resource.html"></iframe>
+									</div>
+								</td>
+							</tr>
+							<tr>
+								<td></td>
+								<td class="InfoCrearEmpleado">Para agilizar el proceso, debe adjuntar la copia de la cédula del empleado a afiliar.<br>
+									Se recomienda que el archivo a adjuntar sea PDF o JPG y legible.
+								</td>
+							</tr>
+						</tbody>
+						</table>
+					</div>
+					<div class="buttons">
+						<b>Correo Encargado:</b>
+						<input maxlength="70" type="text" name="empmai" id="empmai" style="width:300px" value="info@comfamiliar.com.co">
+						<span class="button"><input type="submit" name="_action_save" value="Salvar" class="save"></span>
+					</div>
+				</form>
+			</div>
+		</div>
+		
+	</td>
+			</tr>
+			<tr>
+			</tr>
+		</tbody></table>
+		<div id="footer" style="float: left; padding-left: 290px;">
+			<div class="contactenos" id="footer">
+				Cualquier inquietud contáctenos a info@comfamiliar.com.co<br>
+			</div>
+			<span class="mini politica">Para conocer nuestra <b>POLÍTICA DE PRIVACIDAD</b> haga click <a target="_blank" href="http://www.comfamiliar.com.co/opencms/export/sites/default/comfamiliar/Modulos/DESCARGABLES/politica_datospersonales.pdf">aquí</a></span><br>
+			<span class="mini">Extranet de Servicios Comfamiliar  Atlántico © 2025</span>
+			<div id="footer">
+				<a href="http://www.ssf.gov.co/" target="_blank"><img src="./Extranet - Trabajador_files/ssf.png" width="300" height="60" alt="Superintendencia del Subsidio Familiar"></a>
+			</div>
+		</div>
+	
+<div id="ui-datepicker-div" class="ui-datepicker ui-widget ui-widget-content ui-helper-clearfix ui-corner-all"><div class="ui-datepicker-header ui-widget-header ui-helper-clearfix ui-corner-all"><a class="ui-datepicker-prev ui-corner-all" data-handler="prev" data-event="click" title="Prev"><span class="ui-icon ui-icon-circle-triangle-w">Prev</span></a><a class="ui-datepicker-next ui-corner-all ui-state-disabled" title="Next"><span class="ui-icon ui-icon-circle-triangle-e">Next</span></a><div class="ui-datepicker-title"><select class="ui-datepicker-month" data-handler="selectMonth" data-event="change"><option value="0">Ene</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Abr</option><option value="4" selected="selected">May</option></select><select class="ui-datepicker-year" data-handler="selectYear" data-event="change"><option value="1935">1935</option><option value="1936">1936</option><option value="1937">1937</option><option value="1938">1938</option><option value="1939">1939</option><option value="1940">1940</option><option value="1941">1941</option><option value="1942">1942</option><option value="1943">1943</option><option value="1944">1944</option><option value="1945">1945</option><option value="1946">1946</option><option value="1947">1947</option><option value="1948">1948</option><option value="1949">1949</option><option value="1950">1950</option><option value="1951">1951</option><option value="1952">1952</option><option value="1953">1953</option><option value="1954">1954</option><option value="1955">1955</option><option value="1956">1956</option><option value="1957">1957</option><option value="1958">1958</option><option value="1959">1959</option><option value="1960">1960</option><option value="1961">1961</option><option value="1962">1962</option><option value="1963">1963</option><option value="1964">1964</option><option value="1965">1965</option><option value="1966">1966</option><option value="1967">1967</option><option value="1968">1968</option><option value="1969">1969</option><option value="1970">1970</option><option value="1971">1971</option><option value="1972">1972</option><option value="1973">1973</option><option value="1974">1974</option><option value="1975">1975</option><option value="1976">1976</option><option value="1977">1977</option><option value="1978">1978</option><option value="1979">1979</option><option value="1980">1980</option><option value="1981">1981</option><option value="1982">1982</option><option value="1983">1983</option><option value="1984">1984</option><option value="1985">1985</option><option value="1986">1986</option><option value="1987">1987</option><option value="1988">1988</option><option value="1989">1989</option><option value="1990">1990</option><option value="1991">1991</option><option value="1992">1992</option><option value="1993">1993</option><option value="1994">1994</option><option value="1995">1995</option><option value="1996">1996</option><option value="1997">1997</option><option value="1998">1998</option><option value="1999">1999</option><option value="2000">2000</option><option value="2001">2001</option><option value="2002">2002</option><option value="2003">2003</option><option value="2004">2004</option><option value="2005">2005</option><option value="2006">2006</option><option value="2007">2007</option><option value="2008">2008</option><option value="2009">2009</option><option value="2010" selected="selected">2010</option></select></div></div><table class="ui-datepicker-calendar"><thead><tr><th scope="col"><span title="Lunes">Lu</span></th><th scope="col"><span title="Martes">Ma</span></th><th scope="col"><span title="Miércoles">Mi</span></th><th scope="col"><span title="Jueves">Ju</span></th><th scope="col"><span title="Viernes">Vi</span></th><th scope="col" class="ui-datepicker-week-end"><span title="Sábado">Sá</span></th><th scope="col" class="ui-datepicker-week-end"><span title="Domingo">Do</span></th></tr></thead><tbody><tr><td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td><td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td><td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td><td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td><td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td><td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">1</a></td><td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">2</a></td></tr><tr><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">3</a></td><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">4</a></td><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">5</a></td><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">6</a></td><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">7</a></td><td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">8</a></td><td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">9</a></td></tr><tr><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">10</a></td><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">11</a></td><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">12</a></td><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">13</a></td><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">14</a></td><td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">15</a></td><td class=" ui-datepicker-week-end " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">16</a></td></tr><tr><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">17</a></td><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">18</a></td><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">19</a></td><td class=" " data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">20</a></td><td class=" ui-datepicker-days-cell-over  ui-datepicker-current-day" data-handler="selectDay" data-event="click" data-month="4" data-year="2010"><a class="ui-state-default ui-state-active ui-state-hover" href="https://extranet.comfamiliar.com.co/extranet/afiliacion/crearEmpleado#">21</a></td><td class=" ui-datepicker-week-end ui-datepicker-unselectable ui-state-disabled "><span class="ui-state-default">22</span></td><td class=" ui-datepicker-week-end ui-datepicker-unselectable ui-state-disabled "><span class="ui-state-default">23</span></td></tr><tr><td class=" ui-datepicker-unselectable ui-state-disabled "><span class="ui-state-default">24</span></td><td class=" ui-datepicker-unselectable ui-state-disabled "><span class="ui-state-default">25</span></td><td class=" ui-datepicker-unselectable ui-state-disabled "><span class="ui-state-default">26</span></td><td class=" ui-datepicker-unselectable ui-state-disabled "><span class="ui-state-default">27</span></td><td class=" ui-datepicker-unselectable ui-state-disabled "><span class="ui-state-default">28</span></td><td class=" ui-datepicker-week-end ui-datepicker-unselectable ui-state-disabled "><span class="ui-state-default">29</span></td><td class=" ui-datepicker-week-end ui-datepicker-unselectable ui-state-disabled "><span class="ui-state-default">30</span></td></tr><tr><td class=" ui-datepicker-unselectable ui-state-disabled "><span class="ui-state-default">31</span></td><td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td><td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td><td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td><td class=" ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td><td class=" ui-datepicker-week-end ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td><td class=" ui-datepicker-week-end ui-datepicker-other-month ui-datepicker-unselectable ui-state-disabled">&nbsp;</td></tr></tbody></table></div><div class="ui-dialog ui-widget ui-widget-content ui-corner-all ui-front ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-describedby="alertAfiliado" aria-labelledby="ui-id-1" style="display: none; position: absolute;"><div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix ui-draggable-handle"><span id="ui-id-1" class="ui-dialog-title">Empleado actualmente afiliado</span><button type="button" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-icon-only ui-dialog-titlebar-close" role="button" title="Close"><span class="ui-button-icon-primary ui-icon ui-icon-closethick"></span><span class="ui-button-text">Close</span></button></div><div id="alertAfiliado" class="ui-dialog-content ui-widget-content">
+			<p id="p1" style="display: none;">Señor empleador, le informamos que el empleado que desea registrar ya se encuentra afiliado a la caja.
+			De ser necesario, el empleado será trasladado a su empresa.</p>
+			<p id="p2" style="display: none;">Señor empleador, le informamos que el empleado que desea registrar ya se encuentra afiliado en su empresa.</p>
+			<p id="p3" style="display: none;">Señor empleador, le informamos que por ser independiente no puede tener empleados registrados.</p>
+		</div><div class="ui-resizable-handle ui-resizable-n" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-e" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-s" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-w" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-se ui-icon ui-icon-gripsmall-diagonal-se" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-sw" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-ne" style="z-index: 90;"></div><div class="ui-resizable-handle ui-resizable-nw" style="z-index: 90;"></div></div></body></html>
